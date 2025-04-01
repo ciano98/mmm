@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stato della Lapide per Nomi</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #1e2a47; /* Blu scuro */
+            color: white; /* Testo bianco */
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            height: 100%;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        h2 {
+            text-align: center;
+            color: white; /* Scritte bianche per il titolo */
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        .input-container {
+            margin-bottom: 20px;
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            font-size: 16px;
+            width: 100%;
+            max-width: 300px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .button:hover {
+            background-color: #45a049;
+        }
+
+        .cartella-list {
+            margin-top: 20px;
+            font-size: 18px;
+            color: white; /* Scritte bianche per la lista */
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .cartella-item {
+            margin-bottom: 15px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #2a3a6f; /* Colore di sfondo leggermente più chiaro per i singoli elementi */
+        }
+
+        .option-container {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 10px;
+        }
+
+        .option {
+            padding: 10px;
+            text-align: center;
+            font-size: 14px;
+            cursor: pointer;
+            width: 120px;
+            margin: 5px;
+            border-radius: 4px;
+            color: white; /* Colore delle opzioni bianche */
+        }
+
+        .option.green {
+            background-color: #4CAF50;
+        }
+
+        .option.yellow {
+            background-color: #FFEB3B;
+            color: black;
+        }
+
+        .option.red {
+            background-color: #F44336;
+        }
+
+        .light {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-top: 10px;
+            background-color: #ddd;
+        }
+
+        .light.green {
+            background-color: #4CAF50;
+        }
+
+        .light.yellow {
+            background-color: #FFEB3B;
+        }
+
+        .light.red {
+            background-color: #F44336;
+        }
+
+        .delete-button {
+            margin-top: 5px;
+            padding: 5px 10px;
+            background-color: #F44336;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .delete-button:hover {
+            background-color: #e53935;
+        }
+
+        .sub-options {
+            margin-top: 10px;
+            padding-left: 20px;
+        }
+
+        .sub-options input {
+            margin-right: 10px;
+        }
+
+        /* Media query per schermi più piccoli */
+        @media (max-width: 600px) {
+            h2 {
+                font-size: 1.5em;
+            }
+
+            .input-container {
+                width: 90%;
+            }
+
+            input[type="text"] {
+                max-width: 100%;
+            }
+
+            .cartella-list {
+                max-width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Gestione Lapidi</h2>
+
+    <div class="input-container">
+        <!-- Barra di ricerca -->
+        <input type="text" id="searchInput" placeholder="Cerca nome" oninput="searchNames()">
+        <br><br>
+        <!-- Campo per aggiungere un nome -->
+        <input type="text" id="nomeInput" placeholder="Inserisci nome">
+        <button class="button" onclick="addName()">Aggiungi Nome</button>
+    </div>
+
+    <div class="cartella-list" id="cartellaList"></div>
+
+    <script>
+        let allNames = []; // Variabile globale per memorizzare tutti i nomi
+
+        // Funzione per caricare i dati salvati (nomi e stato delle lapidi)
+        function loadNames() {
+            const cartellaListDiv = document.getElementById('cartellaList');
+            cartellaListDiv.innerHTML = ''; 
+
+            const namesToDisplay = JSON.parse(localStorage.getItem('names')) || [];
+            allNames = namesToDisplay; // Salva tutti i nomi per la ricerca
+
+            // Filtra la lista in base alla ricerca
+            const searchQuery = localStorage.getItem('searchQuery') || '';
+            const filteredNames = namesToDisplay.filter(name => name.nome.toLowerCase().includes(searchQuery.toLowerCase()));
+
+            filteredNames.forEach(name => {
+                const cartellaItem = document.createElement('div');
+                cartellaItem.classList.add('cartella-item');
+                cartellaItem.innerHTML = `
+                    <strong>${name.nome}</strong>
+                    <div class="option-container">
+                        <div class="option green" onclick="changeLight('${name.nome}', 'green')">Lapide montata completa</div>
+                        <div class="option yellow" onclick="changeLight('${name.nome}', 'yellow')">Lapide montata incompleta</div>
+                        <div class="option red" onclick="changeLight('${name.nome}', 'red')">Lapide non montata</div>
+                    </div>
+                    <div class="light ${name.lightColor}" id="light-${name.nome}"></div>
+                    ${name.lightColor === 'yellow' ? getMissingOptionsHTML(name) : ''}
+                    ${name.lightColor === 'red' ? getInWorkOptionsHTML(name) : ''}
+                    <button class="delete-button" onclick="deleteName('${name.nome}')">Elimina</button>
+                `;
+                cartellaListDiv.appendChild(cartellaItem);
+            });
+        }
+
+        // Funzione di ricerca dei nomi
+        function searchNames() {
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            localStorage.setItem('searchQuery', searchInput); // Salva la query di ricerca
+            loadNames(); // Ricarica la lista con la ricerca applicata
+        }
+
+        // Funzione per caricare la ricerca salvata
+        function loadSearchQuery() {
+            const searchQuery = localStorage.getItem('searchQuery') || '';
+            document.getElementById('searchInput').value = searchQuery; // Imposta la barra di ricerca con la query salvata
+            loadNames(); // Applica la ricerca salvata
+        }
+
+        function getMissingOptionsHTML(name) {
+            const missingOptions = name.missingOptions || {};
+            return `
+                <div class="sub-options">
+                    <label><input type="checkbox" onclick="updateMissingOption('${name.nome}', 'photo')" ${missingOptions.photo ? 'checked' : ''}> Manca foto</label><br>
+                    <label><input type="checkbox" onclick="updateMissingOption('${name.nome}', 'document')" ${missingOptions.document ? 'checked' : ''}> Manca pergamena</label>
+                </div>
+            `;
+        }
+
+        function getInWorkOptionsHTML(name) {
+            const inWorkOptions = name.inWorkOptions || {};
+            return `
+                <div class="sub-options">
+                    <label><input type="checkbox" onclick="updateInWorkOption('${name.nome}', 'inWork')" ${inWorkOptions.inWork ? 'checked' : ''}> Lapide in lavorazione</label><br>
+                    <label><input type="checkbox" onclick="updateInWorkOption('${name.nome}', 'callFamily')" ${inWorkOptions.callFamily ? 'checked' : ''}> Chiamare famiglia</label><br>
+                    <label><input type="checkbox" onclick="updateInWorkOption('${name.nome}', 'familyCalled')" ${inWorkOptions.familyCalled ? 'checked' : ''}> Famiglia chiamata</label>
+                </div>
+            `;
+        }
+
+        // Funzione per aggiornare le opzioni in lavorazione
+        function updateInWorkOption(nome, option) {
+            const names = JSON.parse(localStorage.getItem('names')) || [];
+            const nameIndex = names.findIndex(name => name.nome === nome);
+            
+            if (nameIndex !== -1) {
+                if (!names[nameIndex].inWorkOptions) {
+                    names[nameIndex].inWorkOptions = {};
+                }
+                names[nameIndex].inWorkOptions[option] = !names[nameIndex].inWorkOptions[option];
+                localStorage.setItem('names', JSON.stringify(names));
+                loadNames(); // Ricarica la lista aggiornata
+            }
+        }
+
+        // Funzione per aggiungere un nuovo nome
+        function addName() {
+            const nomeInput = document.getElementById('nomeInput');
+            const nome = nomeInput.value.trim();
+            
+            if (nome) {
+                const names = JSON.parse(localStorage.getItem('names')) || [];
+                names.push({ nome, lightColor: '', missingOptions: {}, inWorkOptions: {} });
+                localStorage.setItem('names', JSON.stringify(names));
+                nomeInput.value = '';
+                loadNames(); // Ricarica la lista con il nuovo nome
+            }
+        }
+
+        // Funzione per cambiare il colore della luce per un nome
+        function changeLight(nome, color) {
+            const names = JSON.parse(localStorage.getItem('names')) || [];
+            const nameIndex = names.findIndex(name => name.nome === nome);
+            
+            if (nameIndex !== -1) {
+                names[nameIndex].lightColor = color;
+                localStorage.setItem('names', JSON.stringify(names));
+                loadNames(); // Ricarica la lista aggiornata
+            }
+        }
+
+        // Funzione per eliminare un nome e la sua luce
+        function deleteName(nome) {
+            const names = JSON.parse(localStorage.getItem('names')) || [];
+            const updatedNames = names.filter(name => name.nome !== nome);
+            localStorage.setItem('names', JSON.stringify(updatedNames));
+            loadNames(); // Ricarica la lista dopo l'eliminazione
+        }
+
+        // Carica i nomi, la ricerca salvata e lo stato all'inizio
+        window.onload = function() {
+            loadSearchQuery();
+            loadNames();
+        }
+    </script>
+
+</body>
+</html>
